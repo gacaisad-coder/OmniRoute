@@ -112,6 +112,20 @@ function applyCliDefaults(
   }
   headers["x-opencode-client"] ||= cliDefaults.client;
   headers["x-opencode-project"] ||= cliDefaults.project;
+  
+  // Debug: track whether headers were already set
+  const hadRequest = !!headers["x-opencode-request"];
+  const hadSession = !!headers["x-opencode-session"];
+  
   headers["x-opencode-request"] ||= randomUUID();
   headers["x-opencode-session"] ||= randomUUID();
+  
+  // Debug: log generated headers to diagnose 429 rate limit issues
+  console.log("[OPENCODE-HEADERS-DEBUG]", {
+    hadRequest,
+    hadSession,
+    request: headers["x-opencode-request"]?.substring(0, 8) + "...",
+    session: headers["x-opencode-session"]?.substring(0, 8) + "...",
+    timestamp: new Date().toISOString()
+  });
 }
