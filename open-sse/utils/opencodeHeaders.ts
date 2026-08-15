@@ -93,6 +93,14 @@ function applyCliDefaults(
   }
   headers["x-opencode-client"] ||= cliDefaults.client;
   headers["x-opencode-project"] ||= cliDefaults.project;
+  
+  // Debug: track whether headers are being generated or already present
+  const requestExists = !!headers["x-opencode-request"];
+  const sessionExists = !!headers["x-opencode-session"];
+  
   headers["x-opencode-request"] ||= randomUUID();
   headers["x-opencode-session"] ||= randomUUID();
+  
+  // Log the actual values being used (for 429 troubleshooting)
+  console.log(`[OpenCode Headers] request: ${requestExists ? 'existing' : 'generated'} ${headers["x-opencode-request"].substring(0, 8)}..., session: ${sessionExists ? 'existing' : 'generated'} ${headers["x-opencode-session"].substring(0, 8)}..., at ${new Date().toISOString()}`);
 }
