@@ -103,4 +103,13 @@ function applyCliDefaults(
   
   // Log the actual values being used (for 429 troubleshooting)
   console.log(`[OpenCode Headers] request: ${requestExists ? 'existing' : 'generated'} ${headers["x-opencode-request"].substring(0, 8)}..., session: ${sessionExists ? 'existing' : 'generated'} ${headers["x-opencode-session"].substring(0, 8)}..., at ${new Date().toISOString()}`);
+  
+  // CRITICAL DEBUG: Dump all headers after modification to verify they're actually set
+  console.log('[OpenCode Headers FINAL]', JSON.stringify({
+    'user-agent': headers['User-Agent'] || headers['user-agent'],
+    'x-opencode-client': headers['x-opencode-client'],
+    'x-opencode-project': headers['x-opencode-project'],
+    'x-opencode-request': headers['x-opencode-request'],
+    'x-opencode-session': headers['x-opencode-session']
+  }, null, 2));
 }
