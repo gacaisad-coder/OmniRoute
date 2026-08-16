@@ -107,6 +107,13 @@ function applyCliDefaults(
   headers: Record<string, string>,
   cliDefaults: { userAgent: string; client: string; project: string }
 ): void {
+  // Track which headers existed before our defaults
+  const hadUserAgent = !!(headers["User-Agent"] || headers["user-agent"]);
+  const hadClient = !!headers["x-opencode-client"];
+  const hadProject = !!headers["x-opencode-project"];
+  const hadRequest = !!headers["x-opencode-request"];
+  const hadSession = !!headers["x-opencode-session"];
+  
   if (!headers["User-Agent"] && !headers["user-agent"]) {
     setUserAgentHeader(headers, cliDefaults.userAgent);
   }
@@ -114,4 +121,23 @@ function applyCliDefaults(
   headers["x-opencode-project"] ||= cliDefaults.project;
   headers["x-opencode-request"] ||= randomUUID();
   headers["x-opencode-session"] ||= randomUUID();
+  
+  // Detailed debug log for 429 troubleshooting
+  console.log('[OpenCode-CLI-Headers] Applied CLI defaults:', JSON.stringify({
+    timestamp: new Date().toISOString(),
+    before: {
+      hadUserAgent,
+      hadClient,
+      hadProject,
+      hadRequest,
+      hadSession
+    },
+    after: {
+      userAgent: (headers["User-Agent"] || headers["user-agent"] || '').substring(0, 30) + '...',
+      client: headers["x-opencode-client"],
+      project: headers["x-opencode-project"],
+      request: headers["x-opencode-request"].substring(0, 8) + '...',
+      session: headers["x-opencode-session"].substring(0, 8) + '...'
+    }
+  }, null, 2));
 }
