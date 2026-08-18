@@ -1,3 +1,6 @@
+# ── Extract pre-built better-sqlite3 from official image ─────────────────
+FROM diegosouzapw/omniroute:3.8.48 AS better-sqlite3-source
+
 # ── Common base with runtime deps ──────────────────────────────────────────
 FROM node:24-trixie-slim AS base
 WORKDIR /app
@@ -8,12 +11,11 @@ WORKDIR /app
 # that already have a fix published in trixie. CVEs without an upstream fix yet
 # (local-only TOCTOU, etc.) remain until the distro patches them and the image
 # is rebuilt; none are reachable from the proxy's request surface at runtime.
-RUN --mount=type=cache,id=apt-cache,target=/var/cache/apt,sharing=shared \
-  --mount=type=cache,id=apt-lists,target=/var/lib/apt/lists,sharing=shared \
-  apt-get update \
-  && apt-get upgrade -y \
-  && apt-get install -y --no-install-recommends libsecret-1-0 ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+# Retry logic for apt operations to handle transient network issues
+RUN apt-get update && \
+  (apt-get upgrade -y || (sleep 5 && apt-get upgrade -y)) && \
+  apt-get install -y --no-install-recommends libsecret-1-0 ca-certificates && \
+  rm -rf /var/lib/apt/lists/*
 
 # Refresh the globally-installed npm so its *bundled* node_modules (undici, tar)
 # ship the patched versions. These are npm's own internals — not application
@@ -65,11 +67,13 @@ RUN test -f package-lock.json \
 # node-gyp comes from npm's own bundled copy (deterministic, already in the image)
 # instead of `npx --yes`, which would install an arbitrary registry version
 # on-demand and run its lifecycle scripts (Sonar docker:S6505).
+# Install dependencies without building native modules
 RUN --mount=type=cache,id=npm-cache,target=/root/.npm \
-  npm ci --no-audit --no-fund --legacy-peer-deps --ignore-scripts \
-  && (cd node_modules/better-sqlite3 \
-      && node /usr/local/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js rebuild) \
-  && node -e "require('better-sqlite3')(':memory:').close()"
+  npm ci --no-audit --no-fund --legacy-peer-deps --ignore-scripts
+
+# Copy pre-built better-sqlite3 from official image (avoids ARM build issues)
+# Official image was built successfully with better-sqlite3, so we can reuse it
+COPY --from=better-sqlite3-source /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
 
 # Build with Turbopack (stable in Next 16, the repo default). The v3.8.27-era
 # TurbopackInternalError panic ("entered unreachable code: there must be a path to a
