@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { BaseExecutor, type ExecuteInput, type ProviderCredentials } from "./base.ts";
 import { PROVIDERS } from "../config/constants.ts";
 import { getModelTargetFormat } from "../config/providerModels.ts";
@@ -279,6 +280,12 @@ export class OpencodeExecutor extends BaseExecutor {
         cliDefaults,
       });
     }
+
+    // Force OpenCode CLI User-Agent to avoid 429 rate limit.
+    // OpenCode's Cloudflare checks User-Agent; clients like curl/8.5.0 trigger rate limits.
+    // Always override to opencode-cli identity regardless of client's User-Agent.
+    const opencodeUA = process.env.OPENCODE_USER_AGENT?.trim() || "opencode-cli/1.0.0";
+    headers["User-Agent"] = opencodeUA;
 
     void model;
 
